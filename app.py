@@ -80,36 +80,63 @@ def manual_soil():
 @app.route('/predict_soil', methods=['POST'])
 def predict_soil():
     file = request.files['file']
-    filepath = os.path.join("static/uploads", file.filename)
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    filepath = os.path.join(UPLOAD_DIR, file.filename)
     file.save(filepath)
 
-    # Image preprocessing using Pillow
-    img = Image.open(filepath).resize((128, 128))
-    img_array = np.array(img) / 255.0  # normalized array, can be used later if needed
+    # If model exists, predict
+    if soil_model:
+        img = Image.open(filepath).resize((128, 128))
+        img_array = np.array(img) / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
-    # Random soil selection
-    soil_type = random.choice(list(SOIL_CROPS.keys()))
+        prediction = soil_model.predict(img_array)
+        predicted_class = np.argmax(prediction, axis=1)[0]
+
+        soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
+        soil_type = soil_types[predicted_class]
+    else:
+        # Model not found → fallback to random soil
+        import random
+        soil_types = list(SOIL_CROPS.keys())
+        soil_type = random.choice(soil_types)
+
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
-
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=filepath)
 
 # 🌱 Live Scanner (camera capture)
 @app.route("/live_scan", methods=["POST"])
 def live_scan():
+    if not soil_model:
+        return jsonify({"soil_type": "Model not found", "crops": []})
+
     data = request.get_json()
     img_data = data["image"]
 
-    # Remove base64 header
+    # Remove base64 header and decode
     img_data = re.sub('^data:image/.+;base64,', '', img_data)
     img = Image.open(BytesIO(base64.b64decode(img_data))).resize((128, 128))
-    img_array = np.array(img) / 255.0
 
-    # Random soil type
-    soil_type = random.choice(list(SOIL_CROPS.keys()))
+    # Save a copy in uploads folder (optional, useful for debugging)
+    live_filename = os.path.join(UPLOAD_DIR, "live_capture.jpg")
+    img.save(live_filename)
+
+    # Prepare for prediction
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)
+
+    prediction = soil_model.predict(img_array)
+    predicted_class = np.argmax(prediction, axis=1)[0]
+
+    soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
+    soil_type = soil_types[predicted_class]
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
 
-    return jsonify({"soil_type": soil_type, "crops": crops})
+    return jsonify({
+        "soil_type": soil_type,
+        "crops": crops,
+        "saved_path": live_filename  # optional for debugging
+    })
+
 
 # -------------------- Crop Pages -------------------- #
 @app.route("/crop/<crop_id>")
