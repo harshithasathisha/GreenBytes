@@ -12,10 +12,17 @@ import random
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(APP_DIR, "templates")
 STATIC_DIR = os.path.join(APP_DIR, "static")
+UPLOAD_DIR = os.path.join(STATIC_DIR, "uploads")   # FIX: uploads folder path
 DATA_FILE = os.path.join(APP_DIR, "data", "crops.json")
 FAV_FILE = os.path.join(APP_DIR, "data", "favorites.json")
 
+# Make sure uploads folder exists
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 app = Flask(__name__, static_folder=STATIC_DIR, template_folder=TEMPLATE_DIR)
+
+# Placeholder soil model (replace with real model later)
+soil_model = None  
 
 # -------------------- Soil Type → Crops -------------------- #
 SOIL_CROPS = {
@@ -48,11 +55,11 @@ def save_favs(favs):
 def index():
     return redirect(url_for('register'))
 
-@app.route("/register")
+@app.route("/register", methods=["GET", "POST"])
 def register():
     return render_template("register.html")
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
     return render_template("login.html")
 
@@ -64,46 +71,37 @@ def home():
 def categories():
     return render_template("categories.html")
 
-# 🌱 Soil Scan Page
 @app.route("/soil-scan")
 def soil_scan():
     return render_template("soil_scan.html")
 
-# 🌱 Manual Soil Selection
+# -------------------- Soil Scan -------------------- #
 @app.route('/manual_soil', methods=['POST'])
 def manual_soil():
     soil_type = request.form['soil_type']
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=None)
 
-# 🌱 Predict Soil via Image Upload
 @app.route('/predict_soil', methods=['POST'])
 def predict_soil():
     file = request.files['file']
     filepath = os.path.join(UPLOAD_DIR, file.filename)
     file.save(filepath)
 
-    # If model exists, predict
-    if soil_model:
+    if soil_model:  # if a model is loaded
         img = Image.open(filepath).resize((128, 128))
         img_array = np.array(img) / 255.0
         img_array = np.expand_dims(img_array, axis=0)
-
         prediction = soil_model.predict(img_array)
         predicted_class = np.argmax(prediction, axis=1)[0]
-
-        soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
-        soil_type = soil_types[predicted_class]
-    else:
-        # Model not found → fallback to random soil
-        import random
         soil_types = list(SOIL_CROPS.keys())
-        soil_type = random.choice(soil_types)
+        soil_type = soil_types[predicted_class]
+    else:  # fallback to random
+        soil_type = random.choice(list(SOIL_CROPS.keys()))
 
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=filepath)
 
-# 🌱 Live Scanner (camera capture)
 @app.route("/live_scan", methods=["POST"])
 def live_scan():
     if not soil_model:
@@ -112,31 +110,26 @@ def live_scan():
     data = request.get_json()
     img_data = data["image"]
 
-    # Remove base64 header and decode
     img_data = re.sub('^data:image/.+;base64,', '', img_data)
     img = Image.open(BytesIO(base64.b64decode(img_data))).resize((128, 128))
 
-    # Save a copy in uploads folder (optional, useful for debugging)
     live_filename = os.path.join(UPLOAD_DIR, "live_capture.jpg")
     img.save(live_filename)
 
-    # Prepare for prediction
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
-
     prediction = soil_model.predict(img_array)
     predicted_class = np.argmax(prediction, axis=1)[0]
 
-    soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
+    soil_types = list(SOIL_CROPS.keys())
     soil_type = soil_types[predicted_class]
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
 
     return jsonify({
         "soil_type": soil_type,
         "crops": crops,
-        "saved_path": live_filename  # optional for debugging
+        "saved_path": live_filename
     })
-
 
 # -------------------- Crop Pages -------------------- #
 @app.route("/crop/<crop_id>")
@@ -146,15 +139,6 @@ def crop_page(crop_id):
     if not crop:
         return "Crop not found", 404
     return render_template("crop.html", crop=crop)
-
-@app.route("/<page>")
-def render_static_page(page):
-    if not page.endswith(".html"):
-        page += ".html"
-    try:
-        return render_template(page)
-    except Exception:
-        return "Page not found", 404
 
 # -------------------- API Routes -------------------- #
 @app.route("/api/crops")
