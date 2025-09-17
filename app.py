@@ -1,12 +1,12 @@
 import os
 import json
-import re, base64
+import re
+import base64
 import numpy as np
 from io import BytesIO
 from PIL import Image
 from flask import Flask, jsonify, request, render_template, redirect, url_for
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.models import load_model
+import random
 
 # -------------------- Paths -------------------- #
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,34 +17,14 @@ FAV_FILE = os.path.join(APP_DIR, "data", "favorites.json")
 
 app = Flask(__name__, static_folder=STATIC_DIR, template_folder=TEMPLATE_DIR)
 
-
-
 # -------------------- Soil Type → Crops -------------------- #
 SOIL_CROPS = {
-    "Laterite": [
-        "Tea", "Coffee", "Cashew", "Coconut", "Rubber", 
-        "Arecanut", "Tapioca", "Spices", "Pineapple", "Jackfruit"
-    ],
-    "Alluvial": [
-        "Rice", "Wheat", "Sugarcane", "Jute",
-        "Maize", "Barley", "Pulses", "Oilseeds", "Fruits", "Vegetables"
-    ],
-    "Black": [
-        "Cotton", "Soybean", "Sunflower", "Groundnut",
-        "Tobacco", "Millets", "Citrus Fruits", "Pomegranate"
-    ],
-    "Red": [
-        "Groundnut","Millets","Cotton","Wheat","Pulses","Potato",
-        "Oilseeds","Onion","Tomato","Chillies"
-    ],  
-    "Desert": [
-        "Bajra","Barley","Guar","Mustard","Cumin","Dates",
-        "Castor","Fodder Crops","Jowar","Moth Beans"
-    ],
-    "Mountain": [
-        "Apple","Peach","Plum","Maize","Barley","Tea",
-        "Walnut","Almond","Pear","Medicinal Herbs"
-    ]
+    "Laterite": ["Tea", "Coffee", "Cashew", "Coconut", "Rubber", "Arecanut", "Tapioca", "Spices", "Pineapple", "Jackfruit"],
+    "Alluvial": ["Rice", "Wheat", "Sugarcane", "Jute", "Maize", "Barley", "Pulses", "Oilseeds", "Fruits", "Vegetables"],
+    "Black": ["Cotton", "Soybean", "Sunflower", "Groundnut", "Tobacco", "Millets", "Citrus Fruits", "Pomegranate"],
+    "Red": ["Groundnut","Millets","Cotton","Wheat","Pulses","Potato","Oilseeds","Onion","Tomato","Chillies"],  
+    "Desert": ["Bajra","Barley","Guar","Mustard","Cumin","Dates","Castor","Fodder Crops","Jowar","Moth Beans"],
+    "Mountain": ["Apple","Peach","Plum","Maize","Barley","Tea","Walnut","Almond","Pear","Medicinal Herbs"]
 }
 
 # -------------------- Utility Functions -------------------- #
@@ -95,6 +75,7 @@ def manual_soil():
     soil_type = request.form['soil_type']
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=None)
+
 # 🌱 Predict Soil via Image Upload
 @app.route('/predict_soil', methods=['POST'])
 def predict_soil():
@@ -103,12 +84,14 @@ def predict_soil():
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     file.save(filepath)
 
-    # Since we are not using a model, fallback to random soil
-    import random
-    soil_types = list(SOIL_CROPS.keys())
-    soil_type = random.choice(soil_types)
+    # Image preprocessing using Pillow
+    img = Image.open(filepath).resize((128, 128))
+    img_array = np.array(img) / 255.0  # normalized array, can be used later if needed
 
+    # Random soil selection
+    soil_type = random.choice(list(SOIL_CROPS.keys()))
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
+
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=filepath)
 
 # 🌱 Live Scanner (camera capture)
@@ -120,14 +103,10 @@ def live_scan():
     # Remove base64 header
     img_data = re.sub('^data:image/.+;base64,', '', img_data)
     img = Image.open(BytesIO(base64.b64decode(img_data))).resize((128, 128))
-
-    # Convert to array and normalize
     img_array = np.array(img) / 255.0
 
-    # Since no model, pick a random soil type
-    import random
-    soil_types = list(SOIL_CROPS.keys())
-    soil_type = random.choice(soil_types)
+    # Random soil type
+    soil_type = random.choice(list(SOIL_CROPS.keys()))
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
 
     return jsonify({"soil_type": soil_type, "crops": crops})
@@ -147,7 +126,7 @@ def render_static_page(page):
         page += ".html"
     try:
         return render_template(page)
-    except:
+    except Exception:
         return "Page not found", 404
 
 # -------------------- API Routes -------------------- #
