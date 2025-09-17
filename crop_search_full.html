@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🌱 Crop Finder</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:20px; background:#f9fafb; }
+    h1 { text-align:center; color:#2e7d32; }
+    .controls { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:20px; }
+    input, select, button { padding:8px; font-size:16px; }
+    .crop-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:15px; }
+    .card { border:1px solid #ccc; border-radius:12px; background:white; padding:10px;
+            box-shadow:0 2px 5px rgba(0,0,0,0.1); position:relative; }
+    .fav { position:absolute; right:10px; top:10px; font-size:22px; cursor:pointer; }
+    .speak { cursor:pointer; margin-top:5px; font-size:14px; color:#2e7d32; }
+  </style>
+</head>
+<body>
+  <h1 id="title">🌱 Crop Finder</h1>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search crop..."/>
+    <button onclick="startVoiceSearch()">🎤 <span id='voiceBtn'>Voice</span></button>
+    <select id="language" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="kn">Kannada</option>
+      <option value="bn">Bengali</option>
+    </select>
+    <select id="category" onchange="filterCrops(document.getElementById('search').value)">
+      <option value="all">All Categories</option>
+      <option value="foodgrain">Foodgrains</option>
+      <option value="vegetable">Vegetables</option>
+      <option value="fruit">Fruits</option>
+      <option value="spice">Spices</option>
+      <option value="pulse">Pulses</option>
+      <option value="oilseed">Oilseeds</option>
+      <option value="commercial">Commercial</option>
+      <option value="flower">Flowers</option>
+    </select>
+    <button onclick="showFavorites()">⭐ <span id='favBtn'>Favorites</span></button>
+  </div>
+
+  <div id="cropContainer" class="crop-grid"></div>
+
+  <script>
+    // === Crop Data ===
+    window.CROP_DATA = {
+      foodgrain: [
+        {name:"Rice", season:"Kharif", soil:"Clay loam", rainfall:"1200–1500 mm", temperature:"20–35°C", duration:"4–6"},
+        {name:"Wheat", season:"Rabi", soil:"Loam", rainfall:"500–1000 mm", temperature:"10–25°C", duration:"4–5"},
+        {name:"Sugarcane", season:"Annual", soil:"Alluvial", rainfall:"1000–1200 mm", temperature:"20–30°C", duration:"10–12"},
+        {name:"Jute", season:"Kharif", soil:"Alluvial", rainfall:"1500–2000 mm", temperature:"24–35°C", duration:"4–5"}
+      ],
+      fruit: [
+        {name:"Mango", season:"Summer", soil:"Alluvial", rainfall:"750–2500 mm", temperature:"24–30°C", duration:"3–6"},
+        {name:"Banana", season:"All year", soil:"Loamy", rainfall:"1000–2500 mm", temperature:"20–35°C", duration:"9–12"},
+        {name:"Apple", season:"Temperate", soil:"Well-drained", rainfall:"1000–1500 mm", temperature:"6–15°C", duration:"7–8"}
+      ],
+      vegetable: [
+        {name:"Potato", season:"Rabi", soil:"Loamy", rainfall:"850–1200 mm", temperature:"15–20°C", duration:"3–4"},
+        {name:"Onion", season:"Kharif/Rabi", soil:"Well-drained", rainfall:"650–750 mm", temperature:"15–25°C", duration:"3–5"},
+        {name:"Tomato", season:"All year", soil:"Well-drained", rainfall:"600–800 mm", temperature:"21–24°C", duration:"3–4"}
+      ],
+      commercial: [
+        {name:"Tea", season:"Perennial", soil:"Laterite", rainfall:"2000–3000 mm", temperature:"18–30°C", duration:"N/A"},
+        {name:"Coffee", season:"Perennial", soil:"Laterite", rainfall:"1500–2500 mm", temperature:"15–28°C", duration:"N/A"},
+        {name:"Cotton", season:"Kharif", soil:"Black soil", rainfall:"500–1000 mm", temperature:"21–30°C", duration:"6–8"}
+      ],
+      spice: [
+        {name:"Turmeric", season:"Kharif", soil:"Loamy", rainfall:"1000–2000 mm", temperature:"20–30°C", duration:"7–9"},
+        {name:"Ginger", season:"Kharif", soil:"Well-drained", rainfall:"1500–3000 mm", temperature:"20–30°C", duration:"8–10"},
+        {name:"Chillies", season:"Kharif/Rabi", soil:"Loamy", rainfall:"600–1200 mm", temperature:"20–30°C", duration:"4–6"}
+      ],
+      pulse: [
+        {name:"Pigeon Pea", season:"Kharif", soil:"Loamy", rainfall:"600–1000 mm", temperature:"20–30°C", duration:"4–5"},
+        {name:"Green Gram", season:"Kharif", soil:"Loamy", rainfall:"600–1000 mm", temperature:"20–30°C", duration:"3–4"},
+        {name:"Black Gram", season:"Kharif", soil:"Loamy", rainfall:"600–1000 mm", temperature:"20–30°C", duration:"3–4"}
+      ],
+      oilseed: [
+        {name:"Groundnut", season:"Kharif", soil:"Sandy loam", rainfall:"600–1250 mm", temperature:"20–30°C", duration:"4–5"},
+        {name:"Mustard", season:"Rabi", soil:"Loamy", rainfall:"400–650 mm", temperature:"10–25°C", duration:"3–4"},
+        {name:"Soybean", season:"Kharif", soil:"Loamy", rainfall:"500–900 mm", temperature:"20–30°C", duration:"3–4"}
+      ],
+      flower: [
+        {name:"Rose", season:"All year", soil:"Loamy", rainfall:"600–800 mm", temperature:"15–28°C", duration:"N/A"},
+        {name:"Marigold", season:"All year", soil:"Loamy", rainfall:"600–800 mm", temperature:"20–25°C", duration:"3–4"},
+        {name:"Jasmine", season:"Perennial", soil:"Loamy", rainfall:"600–800 mm", temperature:"20–30°C", duration:"N/A"}
+      ]
+    };
+
+    // === Translations ===
+    const translations = {
+      Rice:{hi:"चावल",kn:"ಅಕ್ಕಿ",bn:"চাল"},
+      Wheat:{hi:"गेहूं",kn:"ಗೋಧಿ",bn:"গম"},
+      Sugarcane:{hi:"गन्ना",kn:"ಕರಿಬೇವು",bn:"আখ"},
+      Jute:{hi:"जूट",kn:"ಜೂಟ್",bn:"পাট"},
+      Mango:{hi:"आम",kn:"ಮಾವಿನ ಹಣ್ಣು",bn:"আম"},
+      Banana:{hi:"केला",kn:"ಬಾಳೆಹಣ್ಣು",bn:"কলা"},
+      Apple:{hi:"सेब",kn:"ಸೇಬು",bn:"আপেল"},
+      Potato:{hi:"आलू",kn:"ಅಲೂಗಡ್ಡೆ",bn:"আলু"},
+      Onion:{hi:"प्याज",kn:"ಈರುಳ್ಳಿ",bn:"পেঁয়াজ"},
+      Tomato:{hi:"टमाटर",kn:"ಟೊಮೇಟೊ",bn:"টমেটো"},
+      Tea:{hi:"चाय",kn:"ಚಹಾ",bn:"চা"},
+      Coffee:{hi:"कॉफ़ी",kn:"ಕಾಫಿ",bn:"কফি"},
+      Cotton:{hi:"कपास",kn:"ಹತ್ತಿ",bn:"সুতির কাপড়"},
+      Turmeric:{hi:"हल्दी",kn:"ಅರಿಶಿನ",bn:"হলুদ"},
+      Ginger:{hi:"अदरक",kn:"ಶುಂಠಿ",bn:"আদা"},
+      Chillies:{hi:"मिर्च",kn:"ಮೆಣಸಿನಕಾಯಿ",bn:"লঙ্কা"},
+      "Pigeon Pea":{hi:"अरहर",kn:"ತೊಗರಿ",bn:"তুর"},
+      "Green Gram":{hi:"मूंग",kn:"ಹೆಸರುಕಾಳು",bn:"মুগ"},
+      "Black Gram":{hi:"उड़द",kn:"ಉದ್ದಿನಕಾಳು",bn:"উড়দ"},
+      Groundnut:{hi:"मूंगफली",kn:"ಕಡಲೆಕಾಯಿ",bn:"চীনাবাদাম"},
+      Mustard:{hi:"सरसों",kn:"ಸಾಸಿವೆ",bn:"সরিষা"},
+      Soybean:{hi:"सोयाबीन",kn:"ಸೋಯಾಬೀನ್",bn:"সয়াবিন"},
+      Rose:{hi:"गुलाब",kn:"ಗುಲಾಬಿ",bn:"গোলাপ"},
+      Marigold:{hi:"गेंदा",kn:"ಚೆಂಡು ಹೂವು",bn:"গাঁদা"},
+      Jasmine:{hi:"चमेली",kn:"ಮಲ್ಲಿಗೆ",bn:"যুঁই"}
+    };
+
+    let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+    let currentLang = "en";
+
+    // UI Translations
+    const uiText = {
+      en:{title:"🌱 Crop Finder",voice:"Voice",favorites:"Favorites"},
+      hi:{title:"🌱 फसल खोजक",voice:"आवाज़",favorites:"पसंदीदा"},
+      kn:{title:"🌱 ಬೆಳೆ ಹುಡುಕಾಟ",voice:"ಧ್ವನಿ",favorites:"ಮನಪಟ್ಟು"},
+      bn:{title:"🌱 ফসল অনুসন্ধান",voice:"ভয়েস",favorites:"পছন্দের"}
+    };
+
+    function renderCrops(crops) {
+      const container=document.getElementById("cropContainer");
+      container.innerHTML="";
+      crops.forEach(crop=>{
+        const card=document.createElement("div");
+        card.className="card";
+        let translatedName = translations[crop.name]?.[currentLang] || crop.name;
+        card.innerHTML=`
+          <span class="fav" onclick="toggleFavorite('${crop.name}')">${favorites.includes(crop.name)?"❤️":"🤍"}</span>
+          <h3>${translatedName}</h3>
+          <p>🌦️ ${crop.season}</p>
+          <p>🌱 ${crop.soil}</p>
+          <p>💧 ${crop.rainfall}</p>
+          <p>🌡️ ${crop.temperature}</p>
+          <p>⏳ ${crop.duration} months</p>
+          <div class="speak" onclick="speakCrop('${crop.name}')">🔊</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterCrops(query) {
+      query=query.toLowerCase();
+      let allCrops=[];
+      const category=document.getElementById("category").value;
+      if(category==="all"){ allCrops=Object.values(window.CROP_DATA).flat(); }
+      else { allCrops=window.CROP_DATA[category]||[]; }
+      let filtered=allCrops.filter(c=>{
+        let name = translations[c.name]?.[currentLang] || c.name;
+        return name.toLowerCase().includes(query);
+      });
+      renderCrops(filtered);
+    }
+
+    document.getElementById("search").addEventListener("input", e=>filterCrops(e.target.value));
+
+    function startVoiceSearch(){
+      const recog=new(window.SpeechRecognition||window.webkitSpeechRecognition)();
+      recog.lang=currentLang==="en"?"en-US":currentLang==="hi"?"hi-IN":currentLang==="kn"?"kn-IN":"bn-IN";
+      recog.start();
+      recog.onresult=function(e){
+        let text=e.results[0][0].transcript;
+        document.getElementById("search").value=text;
+        filterCrops(text);
+      };
+    }
+
+    function speakCrop(name){
+      let allCrops=Object.values(window.CROP_DATA).flat();
+      let crop=allCrops.find(c=>c.name===name);
+      if(!crop) return;
+      let translatedName = translations[crop.name]?.[currentLang] || crop.name;
+      let utter=new SpeechSynthesisUtterance(
+        `${translatedName}. Season: ${crop.season}. Soil: ${crop.soil}. Rainfall: ${crop.rainfall}. Temperature: ${crop.temperature}. Duration: ${crop.duration} months.`
+      );
+      utter.lang=currentLang==="en"?"en-US":currentLang==="hi"?"hi-IN":currentLang==="kn"?"kn-IN":"bn-IN";
+      speechSynthesis.speak(utter);
+    }
+
+    function toggleFavorite(name){
+      if(favorites.includes(name)){favorites=favorites.filter(f=>f!==name);}else{favorites.push(name);}
+      localStorage.setItem("favorites",JSON.stringify(favorites));
+      filterCrops(document.getElementById("search").value);
+    }
+
+    function showFavorites(){
+      let allCrops=Object.values(window.CROP_DATA).flat();
+      renderCrops(allCrops.filter(c=>favorites.includes(c.name)));
+    }
+
+    function setLanguage(lang){ 
+      currentLang=lang; 
+      document.getElementById("title").innerText=uiText[lang].title;
+      document.getElementById("voiceBtn").innerText=uiText[lang].voice;
+      document.getElementById("favBtn").innerText=uiText[lang].favorites;
+      filterCrops(document.getElementById("search").value); 
+    }
+
+    // Initial load
+    filterCrops("");
+  </script>
+</body>
+</html>

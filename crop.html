@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title id="page-title">{{ crop.name_en }} - Crop</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <a href="/" class="back">← Back</a>
+  <main class="crop-page">
+    <div class="top-row">
+      <h1 id="title">{{ crop.name_en }}</h1>
+      <div class="lang-buttons">
+        <button id="btn-en" class="lang-btn active">English</button>
+        <button id="btn-kn" class="lang-btn">ಕನ್ನಡ</button>
+        <button id="btn-hi" class="lang-btn">हिन्दी</button>
+        <button id="btn-bn" class="lang-btn">বাংলা</button>
+      </div>
+    </div>
+
+    <img id="crop-img" src="{{ crop.thumb }}" alt="" class="crop-img"/>
+    <section>
+      <h2 id="sec-desc-title">Description</h2>
+      <p id="desc-text">{{ crop.desc_en }}</p>
+      <div class="tts-controls">
+        <button id="play-tts">🔊 Play</button>
+        <button id="stop-tts">⏹ Stop</button>
+      </div>
+    </section>
+
+    <section class="details">
+      <h3>Soil</h3>
+      <p id="soil-text">{{ crop.soil_en }}</p>
+      <h3>Temperature</h3>
+      <p id="temp-text">{{ crop.temperature_en }}</p>
+      <h3>Pesticides</h3>
+      <p id="pest-text">{{ crop.pesticides_en }}</p>
+      <h3>Market Price</h3>
+      <p id="price-text">{{ crop.market_price_en }}</p>
+      <div id="youtube-container"></div> <!-- YouTube video will load here -->
+    </section>
+  </main>
+
+<script>
+const crop = {{ crop | tojson | safe }};
+let currentLang = "en";
+
+// DOM Elements
+const titleEl = document.getElementById("title");
+const pageTitleEl = document.getElementById("page-title");
+const descText = document.getElementById("desc-text");
+const soilText = document.getElementById("soil-text");
+const tempText = document.getElementById("temp-text");
+const pestText = document.getElementById("pest-text");
+const priceText = document.getElementById("price-text");
+const secDescTitle = document.getElementById("sec-desc-title");
+
+const btnEn = document.getElementById("btn-en");
+const btnKn = document.getElementById("btn-kn");
+const btnHi = document.getElementById("btn-hi");
+const btnBn = document.getElementById("btn-bn");
+
+// TTS
+let synth = window.speechSynthesis;
+let utter = null;
+
+// Language switcher
+function setLang(lang) {
+  currentLang = lang;
+  // Reset button styles
+  [btnEn, btnKn, btnHi, btnBn].forEach(btn => btn.classList.remove("active"));
+
+  let name, desc, soil, temp, pest, price, secTitle;
+
+  switch (lang) {
+    case "en":
+      btnEn.classList.add("active");
+      name = crop.name_en;
+      desc = crop.desc_en;
+      soil = crop.soil_en;
+      temp = crop.temperature_en;
+      pest = crop.pesticides_en;
+      price = crop.market_price_en;
+      secTitle = "Description";
+      break;
+    case "kn":
+      btnKn.classList.add("active");
+      name = crop.name_kn;
+      desc = crop.desc_kn;
+      soil = crop.soil_kn;
+      temp = crop.temperature_kn;
+      pest = crop.pesticides_kn;
+      price = crop.market_price_kn;
+      secTitle = "ವಿವರಣೆ";
+      break;
+    case "hi":
+      btnHi.classList.add("active");
+      name = crop.name_hi;
+      desc = crop.desc_hi;
+      soil = crop.soil_hi;
+      temp = crop.temperature_hi;
+      pest = crop.pesticides_hi;
+      price = crop.market_price_hi;
+      secTitle = "विवरण";
+      break;
+    case "bn":
+      btnBn.classList.add("active");
+      name = crop.name_bn;
+      desc = crop.desc_bn;
+      soil = crop.soil_bn;
+      temp = crop.temperature_bn;
+      pest = crop.pesticides_bn;
+      price = crop.market_price_bn;
+      secTitle = "বিবরণ";
+      break;
+    default:
+      name = crop.name_en;
+      desc = crop.desc_en;
+      soil = crop.soil_en;
+      temp = crop.temperature_en;
+      pest = crop.pesticides_en;
+      price = crop.market_price_en;
+      secTitle = "Description";
+  }
+
+  // Update DOM
+  titleEl.textContent = name;
+  pageTitleEl.textContent = name + " - Crop";
+  descText.textContent = desc;
+  soilText.textContent = soil;
+  tempText.textContent = temp;
+  pestText.textContent = pest;
+  priceText.textContent = price;
+  secDescTitle.textContent = secTitle;
+}
+
+// Language buttons
+btnEn.addEventListener("click", () => setLang("en"));
+btnKn.addEventListener("click", () => setLang("kn"));
+btnHi.addEventListener("click", () => setLang("hi"));
+btnBn.addEventListener("click", () => setLang("bn"));
+
+// Play TTS
+document.getElementById("play-tts").addEventListener("click", () => {
+  if (utter) synth.cancel();
+  let text = `${descText.textContent}. Soil: ${soilText.textContent}. Temperature: ${tempText.textContent}. Pesticides: ${pestText.textContent}. Market Price: ${priceText.textContent}.`;
+  utter = new SpeechSynthesisUtterance(text);
+
+  switch (currentLang) {
+    case "kn": utter.lang = "kn-IN"; break;
+    case "hi": utter.lang = "hi-IN"; break;
+    case "bn": utter.lang = "bn-BD"; break;
+    default: utter.lang = "en-IN";
+  }
+
+  synth.speak(utter);
+});
+
+// Stop TTS
+document.getElementById("stop-tts").addEventListener("click", () => {
+  if (utter) synth.cancel();
+});
+
+// ✅ YouTube embed (if crop.youtube exists)
+function getYouTubeId(url) {
+  if (!url) return null;
+  const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[7].length === 11) ? match[7] : null;
+}
+
+const videoId = getYouTubeId(crop.youtube);
+if (videoId) {
+  document.getElementById("youtube-container").innerHTML = `
+    <h3>Video Guide</h3>
+    <iframe width="560" height="315"
+      src="https://www.youtube.com/embed/${videoId}"
+      frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen>
+    </iframe>
+  `;
+}
+
+// Initialize default language
+setLang("en");
+</script>
+</body>
+</html>

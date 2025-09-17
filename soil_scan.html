@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌱 Soil Scanner</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#eef7ee; text-align:center; padding:20px; }
+    .box { background:#fff; padding:20px; margin:auto; border-radius:10px; width:400px; box-shadow:0 4px 6px rgba(0,0,0,0.2); }
+    h1 { color:#2c662d; }
+    button { margin-top:10px; padding:10px 20px; border:none; border-radius:6px; background:#2c662d; color:#fff; cursor:pointer; }
+    button:hover { background:#1b441c; }
+    select, input { margin-top:10px; padding:8px; width:90%; border-radius:6px; border:1px solid #ccc; }
+    img { margin-top:15px; max-width:100%; border-radius:8px; }
+    .back { display:block; margin-top:20px; text-decoration:none; color:#2c662d; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🌱 Soil Scanner</h1>
+    <p>select soil type manually.</p>
+
+
+    <hr>
+
+    <!-- Manual Selection Form -->
+    <form action="/manual_soil" method="post">
+      <label for="soil_type">Select Soil Type:</label><br>
+      <select name="soil_type" required>
+        <option value="">--Choose Soil--</option>
+        <option value="Laterite">Laterite</option>
+        <option value="Alluvial">Alluvial</option>
+        <option value="Black">Black</option>
+        <option value="Red">Red</option>
+        <option value="Desert">Desert</option>
+        <option value="Mountain">Mountain</option>
+      </select>
+      <br>
+      <button type="submit">🌾 Show Crops</button>
+    </form>
+
+    {% if result %}
+      <h3>Predicted Soil Type: {{ result }}</h3>
+      <h4>🌾 Suitable Crops:</h4>
+      <ul>
+        {% for crop in crops %}
+          <li>{{ crop }}</li>
+        {% endfor %}
+      </ul>
+      {% if image_path %}
+        <img src="{{ image_path }}" alt="Uploaded soil image">
+      {% endif %}
+    {% endif %}
+
+    <a href="/categories" class="back">⬅ Back to Categories</a>
+  </div>
+</body>
+</html>

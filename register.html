@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Raitha Bandhu - Register</title>
+  <style>
+    body {
+      font-family: Poppins, Arial, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: url("https://c8.alamy.com/comp/2J04BR7/happy-smiling-indian-woman-farmer-showing-green-screen-mobile-phone-in-front-of-green-farmland-concept-of-app-advertisement-and-farm-product-2J04BR7.jpg");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    }
+    h1 {
+      text-align: center;
+      color: #fff;
+      margin: 20px 0;
+      font-size: 2.2rem;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+    .lang-select {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: rgba(255,255,255,0.9);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      border: 1px solid #cbd5e1;
+    }
+    .container {
+      flex: 1;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 40px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 28px 26px;
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      width: min(92vw, 360px);
+      animation: slideIn 0.8s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    h2 { margin: 0 0 16px 0; color: #065f46; text-align: center; }
+    label { display: block; margin: 10px 0 6px; color: #065f46; font-weight: 600; }
+    input { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; }
+    button { width: 100%; margin-top: 14px; padding: 12px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-weight: 700; cursor: pointer; font-size: 15px; transition: background 0.3s ease; }
+    button:hover { background: linear-gradient(135deg, #16a34a, #15803d); }
+    .muted { text-align: center; margin-top: 12px; color: #475569; }
+    a { color: #2563eb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <!-- Language Selector -->
+  <select class="lang-select" onchange="switchLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="hi">हिन्दी</option>
+    <option value="kn">ಕನ್ನಡ</option>
+    <option value="bn">বাংলা</option>
+  </select>
+
+  <h1>Welcome to Raitha Bandhu</h1>
+
+  <div class="container">
+    <div class="card">
+      <h2 id="register_title">Create Account</h2>
+      <form onsubmit="return handleRegister(event)">
+        <label for="reg_user" id="lbl_user">Username</label>
+        <input id="reg_user" type="text" onfocus="speakKey('enter_username')" required/>
+
+        <label for="reg_email" id="lbl_email">Email</label>
+        <input id="reg_email" type="email" onfocus="speakKey('enter_email')" required/>
+
+        <label for="reg_phone" id="lbl_phone">Phone Number</label>
+        <input id="reg_phone" type="tel" onfocus="speakKey('enter_phone')" required/>
+
+        <label for="reg_pass" id="lbl_pass">Password</label>
+        <input id="reg_pass" type="password" onfocus="speakKey('enter_password')" required/>
+
+        <label for="reg_cpass" id="lbl_cpass">Confirm Password</label>
+        <input id="reg_cpass" type="password" onfocus="speakKey('enter_cpassword')" required/>
+
+        <button type="submit" id="btn_register">Register</button>
+      </form>
+      <p class="muted">
+        <span id="have_account">Already have an account?</span>
+        <a href="login.html" id="login_link">Login</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // 🌍 Translations
+    const t = {
+      en: {
+        register_title:"Create Account", username:"Username", email:"Email", phone:"Phone Number", password:"Password", confirm_password:"Confirm Password", register_btn:"Register",
+        enter_username:"Enter your username", enter_email:"Enter your email", enter_phone:"Enter your phone number", enter_password:"Enter your password", enter_cpassword:"Confirm your password",
+        register_success:"Registration successful", register_fail:"Please fill all fields correctly",
+        invalid_phone:"Please enter a valid 10-digit phone number.", invalid_email:"Please enter a valid Gmail address.",
+        user_exists:"Username already exists"
+      },
+      hi: {
+        register_title:"खाता बनाएँ", username:"उपयोगकर्ता नाम", email:"ईमेल", phone:"फ़ोन नंबर", password:"पासवर्ड", confirm_password:"पासवर्ड की पुष्टि करें", register_btn:"रजिस्टर करें",
+        enter_username:"अपना उपयोगकर्ता नाम दर्ज करें", enter_email:"अपना ईमेल दर्ज करें", enter_phone:"अपना फ़ोन नंबर दर्ज करें", enter_password:"अपना पासवर्ड दर्ज करें", enter_cpassword:"अपना पासवर्ड पुष्टि करें",
+        register_success:"पंजीकरण सफल हुआ", register_fail:"सभी फ़ील्ड सही ढंग से भरें",
+        invalid_phone:"कृपया सही 10-अंकों का फ़ोन नंबर दर्ज करें।", invalid_email:"कृपया मान्य Gmail पता दर्ज करें।",
+        user_exists:"उपयोगकर्ता नाम पहले से मौजूद है"
+      },
+      kn: {
+        register_title:"ಖಾತೆ ಸೃಷ್ಟಿಸಿ", username:"ಬಳಕೆದಾರರ ಹೆಸರು", email:"ಇಮೇಲ್", phone:"ಫೋನ್ ಸಂಖ್ಯೆ", password:"ಪಾಸ್ವರ್ಡ್", confirm_password:"ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ", register_btn:"ನೋಂದಣಿ",
+        enter_username:"ನಿಮ್ಮ ಬಳಕೆದಾರರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ", enter_email:"ನಿಮ್ಮ ಇಮೇಲ್ ನಮೂದಿಸಿ", enter_phone:"ನಿಮ್ಮ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ", enter_password:"ನಿಮ್ಮ ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ", enter_cpassword:"ನಿಮ್ಮ ಪಾಸ್ವರ್ಡ್ ದೃಢೀಕರಿಸಿ",
+        register_success:"ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಯಿತು", register_fail:"ದಯವಿಟ್ಟು ಎಲ್ಲಾ ಕ್ಷೇತ್ರಗಳನ್ನು ಸರಿಯಾಗಿ ತುಂಬಿ",
+        invalid_phone:"ದಯವಿಟ್ಟು 10 ಅಂಕೆಗಳ ಫೋನ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ.", invalid_email:"ದಯವಿಟ್ಟು ಮಾನ್ಯ Gmail ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ.",
+        user_exists:"ಬಳಕೆದಾರ ಹೆಸರು ಈಗಾಗಲೇ ಅಸ್ತಿತ್ವದಲ್ಲಿದೆ"
+      },
+      bn: {
+        register_title:"অ্যাকাউন্ট তৈরি করুন", username:"ব্যবহারকারীর নাম", email:"ইমেল", phone:"ফোন নম্বর", password:"পাসওয়ার্ড", confirm_password:"পাসওয়ার্ড নিশ্চিত করুন", register_btn:"নিবন্ধন",
+        enter_username:"আপনার ব্যবহারকারীর নাম লিখুন", enter_email:"আপনার ইমেল লিখুন", enter_phone:"আপনার ফোন নম্বর লিখুন", enter_password:"আপনার পাসওয়ার্ড লিখুন", enter_cpassword:"আপনার পাসওয়ার্ড নিশ্চিত করুন",
+        register_success:"নিবন্ধন সফল হয়েছে", register_fail:"সব ক্ষেত্র সঠিকভাবে পূরণ করুন",
+        invalid_phone:"দয়া করে সঠিক 10-অঙ্কের ফোন নম্বর লিখুন।", invalid_email:"দয়া করে বৈধ Gmail ঠিকানা লিখুন।",
+        user_exists:"ব্যবহারকারীর নাম ইতিমধ্যেই বিদ্যমান"
+      }
+    };
+
+    let currentLang = localStorage.getItem("rb_lang") || "en";
+
+    function setLang(l){
+      currentLang = l;
+      localStorage.setItem("rb_lang", l);
+      const dict = t[l];
+      document.getElementById("register_title").innerText = dict.register_title;
+      document.getElementById("lbl_user").innerText = dict.username;
+      document.getElementById("lbl_email").innerText = dict.email;
+      document.getElementById("lbl_phone").innerText = dict.phone;
+      document.getElementById("lbl_pass").innerText = dict.password;
+      document.getElementById("lbl_cpass").innerText = dict.confirm_password;
+      document.getElementById("btn_register").innerText = dict.register_btn;
+      document.getElementById("have_account").innerText = (l==="en")?"Already have an account?":dict.have_account || "Already have an account?";
+      document.getElementById("login_link").innerText = (l==="en")?"Login":dict.login_link || "Login";
+    }
+
+    function switchLanguage(lang){
+      setLang(lang);
+    }
+
+    function speakKey(k){
+      speak(t[currentLang][k]);
+    }
+
+    function speak(msg){
+      if(!msg) return;
+      const u = new SpeechSynthesisUtterance(msg);
+      u.lang = currentLang==="hi"?"hi-IN":currentLang==="kn"?"kn-IN":currentLang==="bn"?"bn-IN":"en-US";
+      speechSynthesis.speak(u);
+    }
+
+    function handleRegister(e){
+      e.preventDefault();
+      const u = document.getElementById('reg_user').value.trim();
+      const em = document.getElementById('reg_email').value.trim();
+      const ph = document.getElementById('reg_phone').value.trim();
+      const p = document.getElementById('reg_pass').value;
+      const cp = document.getElementById('reg_cpass').value;
+
+      // Field validation
+      if(!u || !em || !ph || !p || p!==cp){
+        speakKey('register_fail');
+        alert(t[currentLang].register_fail);
+        return false;
+      }
+
+      // Phone validation
+      if(!/^\d{10}$/.test(ph)){
+        speakKey('invalid_phone');
+        alert(t[currentLang].invalid_phone);
+        return false;
+      }
+
+      // Gmail validation
+      if(!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(em)){
+        speakKey('invalid_email');
+        alert(t[currentLang].invalid_email);
+        return false;
+      }
+
+      // Check if user exists
+      const users = JSON.parse(localStorage.getItem('rb_users')||'[]');
+      if(users.find(x=>x.u===u)){
+        speakKey('user_exists');
+        alert(t[currentLang].user_exists);
+        return false;
+      }
+
+      // Save user
+      users.push({u, em, ph, p});
+      localStorage.setItem('rb_users', JSON.stringify(users));
+
+      speakKey('register_success');
+      alert(t[currentLang].register_success);
+      setTimeout(()=>location.href='login.html', 1000);
+      return false;
+    }
+
+    window.addEventListener("DOMContentLoaded", ()=>{
+      document.querySelector(".lang-select").value = currentLang;
+      setLang(currentLang);
+      speak("Welcome to Raitha Bandhu. Please register first.");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <!-- ✅ Load CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Welcome to Raitha Bandhu</h1>
+
+    <!-- ✅ Load JavaScript (usually at the bottom) -->
+    <script src="{{ url_for('static', filename='css/data.js') }}"></script>
+    <script src="{{ url_for('static', filename='css/i18n.js') }}"></script>
+    <script src="{{ url_for('static', filename='voice.js') }}"></script>
+</body>
+</html>
+  <meta charset="utf-8" />
+  <title>Raitha Bandhu - Crops (Full)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Raitha Bandhu - Crops</h1>
+    <div class="controls">
+      <input id="search" placeholder="Search crops (English or Kannada)..." />
+      <select id="lang">
+        <option value="en">English</option>
+        <option value="kn">ಕನ್ನಡ</option>
+      </select>
+      <button id="show-favs">Favorites ❤️</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="list" class="grid"></div>
+  </main>
+
+  <template id="card-tpl">
+    <div class="card">
+      <img class="thumb" src="" alt="">
+      <div class="meta">
+        <h3 class="name"></h3>
+        <p class="short"></p>
+        <div class="actions">
+          <a class="view" href="#">View</a>
+          <button class="fav">♡</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <script src="/static/js/main.js"></script>
+</body>
+</html>

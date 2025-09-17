@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Raitha Bandhu - Crops</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body { background: #f8fafc; margin: 24px; font-family: Poppins, Arial, sans-serif; }
+    header { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+    header h1 { color:#065f46; margin:0; }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; }
+    input, select, button { padding:6px 10px; border-radius:6px; border:1px solid #ddd; }
+    #list { display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:20px; max-width:1200px; }
+
+    .card { background:#fff; border-radius:12px; padding:12px; box-shadow:0 6px 16px rgba(0,0,0,.06); cursor:pointer; transition:transform .15s; }
+    .card:hover { transform: translateY(-6px); }
+    .card img { width:100%; height:160px; object-fit:cover; border-radius:10px; }
+    .name { font-size:18px; font-weight:700; color:#0b6b58; margin-top:10px; }
+    .meta{ margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; }
+    .tag{ background:#f1f9f0; padding:6px 8px; border-radius:8px; font-size:13px; }
+    .desc{ margin-top:10px; font-size:14px; color:#333; min-height:40px; }
+    .actions{ margin-top:10px; display:flex; gap:8px; }
+    .btn{ padding:6px 10px; border-radius:6px; border:1px solid #ddd; background:#fafafa; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Raitha Bandhu - Crops</h1>
+    <div class="controls">
+      <input id="search" placeholder="Search crops..." />
+      <select id="lang">
+        <option value="en">English</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="hi">हिन्दी</option>
+        <option value="bn">বাংলা</option>
+      </select>
+      <button id="show-favs">Favorites ❤️</button>
+      <button onclick="window.location.href='/categories'">⬅ Back to Categories</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="list"></div>
+  </main>
+
+  <!-- Data & helpers -->
+  <script src="{{ url_for('static', filename='css/data.js') }}"></script>
+  <script src="{{ url_for('static', filename='css/i18n.js') }}"></script>
+  <script src="{{ url_for('static', filename='voice.js') }}"></script>
+
+  <script>
+    function getCategoryFromQuery() {
+      const params = new URLSearchParams(location.search);
+      return params.get('category') || 'foodgrain';
+    }
+
+    function slugify(name) {
+      if (!name) return '';
+      return name.toString()
+        .toLowerCase()
+        .replace(/[()]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    }
+
+    // ✅ Multi-language description
+    function makeDesc(c) {
+      const lang = localStorage.getItem('rb_lang') || 'en';
+      if (lang === 'kn' && c.desc_kn) return c.desc_kn;
+      if (lang === 'hi' && c.desc_hi) return c.desc_hi;
+      if (lang === 'bn' && c.desc_bn) return c.desc_bn;
+      return c.desc_en || c.description || (c.name_en || c.name || '') + ': Suitable soil and seasonal care.';
+    }
+
+    // ✅ Favorites
+    function getFavorites() {
+      try { return JSON.parse(localStorage.getItem("favorites") || "[]"); }
+      catch(e){ return []; }
+    }
+    function saveFavorites(favs) {
+      localStorage.setItem("favorites", JSON.stringify(favs));
+    }
+    function toggleFavorite(crop) {
+      const favs = getFavorites();
+      const idx = favs.findIndex(f => f.id === crop.id);
+      if (idx >= 0) {
+        favs.splice(idx,1);
+      } else {
+        favs.push(crop);
+      }
+      saveFavorites(favs);
+    }
+    function isFavorite(id) {
+      return getFavorites().some(f => f.id === id);
+    }
+
+    // ✅ Render crop cards
+    function render(list) {
+      const wrap = document.getElementById('list');
+      wrap.innerHTML = '';
+
+      if (list.length === 0) {
+        wrap.innerHTML = "<p>No crops to display.</p>";
+        return;
+      }
+
+      const lang = localStorage.getItem('rb_lang') || 'en';
+
+      list.forEach(function(c) {
+        const displayName = c["name_"+lang] || c.name_en || c.name || "";
+        const id = slugify(displayName);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        card.innerHTML = `
+          <img src="${c.image || (c.thumb || '/static/images/placeholder.png')}" alt="${displayName}">
+          <div class="content">
+            <div class="name">${displayName}</div>
+            <div class="meta">
+              ${c.season ? `<div class="tag"><strong>Season:</strong> ${c.season}</div>` : ''}
+              ${c.soil ? `<div class="tag"><strong>Soil:</strong> ${c.soil}</div>` : ''}
+              ${c.rainfall ? `<div class="tag"><strong>Rainfall:</strong> ${c.rainfall}</div>` : ''}
+              ${c.temperature ? `<div class="tag"><strong>Temperature:</strong> ${c.temperature}</div>` : ''}
+              ${c.duration ? `<div class="tag"><strong>Duration:</strong> ${c.duration}</div>` : ''}
+            </div>
+            <div class="desc">${makeDesc(c)}</div>
+            <div class="actions">
+              <button class="btn speak" data-i18n="speak_details">Speak Details</button>
+              <button class="btn fav">${isFavorite(id) ? "♥" : "♡"}</button>
+            </div>
+          </div>
+        `;
+
+        // Speak
+        card.querySelector('.speak').addEventListener('click', function(evt) {
+          evt.stopPropagation();
+          const text = card.querySelector('.desc').textContent || displayName;
+          try { RB_VOICE.speakText(text, lang); } catch(e){ console.warn(e); }
+        });
+
+        // Favorite toggle
+        card.querySelector('.fav').addEventListener('click', function(evt) {
+          evt.stopPropagation();
+          toggleFavorite({ id, name: displayName, image: c.image, short: makeDesc(c) });
+          this.textContent = isFavorite(id) ? "♥" : "♡";
+        });
+
+        // Card click -> detail page
+        card.addEventListener('click', function() {
+          if (!id) return;
+          window.location.href = '/crop/' + encodeURIComponent(id);
+        });
+
+        wrap.appendChild(card);
+      });
+
+      try { if (typeof RB_I18N !== 'undefined' && RB_I18N.apply) RB_I18N.apply(); } catch(e){}
+    }
+
+    // ✅ Main
+    document.addEventListener('DOMContentLoaded', function() {
+      const category = getCategoryFromQuery();
+      const all = (window.CROP_DATA && window.CROP_DATA[category]) || [];
+      render(all);
+
+      // ✅ Fixed Search filter
+      document.getElementById('search').addEventListener('input', function() {
+        const q = this.value.toLowerCase();
+        const lang = localStorage.getItem('rb_lang') || 'en';
+
+        const filtered = all.filter(c => {
+          const name = c["name_"+lang] || c.name_en || c.name || "";
+          return (
+            name.toLowerCase().includes(q) ||
+            (c.soil && c.soil.toLowerCase().includes(q)) ||
+            (c.desc_en && c.desc_en.toLowerCase().includes(q)) ||
+            (c.desc_kn && c.desc_kn.toLowerCase().includes(q)) ||
+            (c.desc_hi && c.desc_hi.toLowerCase().includes(q)) ||
+            (c.desc_bn && c.desc_bn.toLowerCase().includes(q))
+          );
+        });
+
+        render(filtered);
+      });
+
+      // ✅ Language change (save to localStorage)
+      document.getElementById('lang').addEventListener('change', function() {
+        localStorage.setItem('rb_lang', this.value);
+        render(all);
+      });
+
+      // ✅ Favorites view
+      document.getElementById('show-favs').addEventListener('click', function() {
+        const favs = getFavorites();
+        if (favs.length === 0) {
+          document.getElementById('list').innerHTML = "<p>No favorites yet ❤️</p>";
+        } else {
+          render(favs);
+        }
+      });
+    });
+
+    window.addEventListener('storage', function(e){ 
+      if (e.key === 'rb_lang') {
+        const category = getCategoryFromQuery();
+        const all = (window.CROP_DATA && window.CROP_DATA[category]) || [];
+        render(all);
+      }
+    });
+  </script>
+</body>
+</html>

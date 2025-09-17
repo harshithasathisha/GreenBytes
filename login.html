@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Raitha Bandhu - Login</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Poppins, Arial, sans-serif;
+      background: url("https://previews.123rf.com/images/adsniks/adsniks2009/adsniks200900333/155055361-indian-farmer-using-mobile-phone-at-agriculture-field.jpg") no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 40px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(6px);
+      padding: 32px;
+      border-radius: 20px;
+      width: 380px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      animation: fadeIn 1s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateX(-40px);}
+      to {opacity: 1; transform: translateX(0);}
+    }
+    h2 {
+      margin: 0 0 20px 0;
+      color: #166534;
+      text-align: center;
+      font-size: 1.8rem;
+    }
+    label {
+      display: block;
+      margin: 10px 0 6px 0;
+      color: #065f46;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #94a3b8;
+      border-radius: 10px;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+    }
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border: 0;
+      border-radius: 12px;
+      background: linear-gradient(90deg,#16a34a,#15803d);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(22,163,74,0.4);
+    }
+    .muted {
+      text-align: center;
+      margin-top: 14px;
+      color: #334155;
+    }
+    a { color: #2563eb; font-weight: 600; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 id="login_title">Login</h2>
+
+    <form onsubmit="return handleLogin(event)">
+      <label for="log_user" id="lbl_user">Username</label>
+      <input id="log_user" type="text" onfocus="speakKey('enter_username')" required/>
+
+      <label for="log_pass" id="lbl_pass">Password</label>
+      <input id="log_pass" type="password" onfocus="speakKey('enter_password')" required/>
+
+      <button type="submit" id="btn_login">Login</button>
+    </form>
+
+    <p class="muted">
+      <span id="no_account">Don't have an account?</span>
+      <a href="register.html" id="register_link">Register</a>
+    </p>
+  </div>
+
+  <script>
+    const t = {
+      en: {login_title:"Login", username:"Username", password:"Password", login_btn:"Login", no_account:"Don't have an account?", register_link:"Register",
+           enter_username:"Enter your username", enter_password:"Enter your password",
+           login_success:"Login successful", login_fail:"Login failed, please try again"},
+      hi: {login_title:"लॉगिन", username:"उपयोगकर्ता नाम", password:"पासवर्ड", login_btn:"लॉगिन", no_account:"क्या आपका खाता नहीं है?", register_link:"रजिस्टर करें",
+           enter_username:"अपना उपयोगकर्ता नाम दर्ज करें", enter_password:"अपना पासवर्ड दर्ज करें",
+           login_success:"लॉगिन सफल हुआ", login_fail:"लॉगिन विफल, कृपया पुनः प्रयास करें"},
+      kn: {login_title:"ಲಾಗಿನ್", username:"ಬಳಕೆದಾರರ ಹೆಸರು", password:"ಪಾಸ್ವರ್ಡ್", login_btn:"ಲಾಗಿನ್", no_account:"ಖಾತೆ ಇಲ್ಲವೆ?", register_link:"ನೋಂದಣಿ",
+           enter_username:"ನಿಮ್ಮ ಬಳಕೆದಾರರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ", enter_password:"ನಿಮ್ಮ ಪಾಸ್ವರ್ಡ್ ನಮೂದಿಸಿ",
+           login_success:"ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ", login_fail:"ಲಾಗಿನ್ ವಿಫಲವಾಗಿದೆ, ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ"},
+      bn: {login_title:"লগইন", username:"ব্যবহারকারীর নাম", password:"পাসওয়ার্ড", login_btn:"লগইন", no_account:"অ্যাকাউন্ট নেই?", register_link:"নিবন্ধন করুন",
+           enter_username:"আপনার ব্যবহারকারীর নাম লিখুন", enter_password:"আপনার পাসওয়ার্ড লিখুন",
+           login_success:"লগইন সফল হয়েছে", login_fail:"লগইন ব্যর্থ হয়েছে, আবার চেষ্টা করুন"}
+    };
+
+    let currentLang = localStorage.getItem("rb_lang") || "en";
+
+    function setLang(l){
+      currentLang = l;
+      const dict = t[l];
+      document.getElementById("login_title").innerText = dict.login_title;
+      document.getElementById("lbl_user").innerText = dict.username;
+      document.getElementById("lbl_pass").innerText = dict.password;
+      document.getElementById("btn_login").innerText = dict.login_btn;
+      document.getElementById("no_account").innerText = dict.no_account;
+      document.getElementById("register_link").innerText = dict.register_link;
+    }
+
+    function speakKey(k){ speak(t[currentLang][k]); }
+
+    function speak(msg){
+      if(!msg) return;
+      const u = new SpeechSynthesisUtterance(msg);
+      u.lang = currentLang==="hi"?"hi-IN":currentLang==="kn"?"kn-IN":currentLang==="bn"?"bn-IN":"en-US";
+      speechSynthesis.speak(u);
+    }
+
+    function handleLogin(e){
+      e.preventDefault();
+      const u = document.getElementById('log_user').value.trim();
+      const p = document.getElementById('log_pass').value;
+
+      if(!u || !p){
+        speakKey('login_fail');
+        alert(t[currentLang].login_fail);
+        return false;
+      }
+
+      const users = JSON.parse(localStorage.getItem('rb_users')||'[]');
+      const ok = users.find(x=>x.u===u && x.p===p);
+      if(ok){
+        speakKey('login_success');
+        localStorage.setItem('rb_current_user', u);
+        setTimeout(()=>location.href='categories.html', 1000);
+      } else {
+        speakKey('login_fail');
+        alert(t[currentLang].login_fail);
+      }
+      return false;
+    }
+
+    window.addEventListener("load", ()=>{ setLang(currentLang); });
+  </script>
+</body>
+</html>
