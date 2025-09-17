@@ -103,33 +103,17 @@ def predict_soil():
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     file.save(filepath)
 
-    # If model exists, predict
-    if soil_model:
-        img = image.load_img(filepath, target_size=(128, 128))
-        img_array = image.img_to_array(img) / 255.0
-        img_array = np.expand_dims(img_array, axis=0)
-
-        prediction = soil_model.predict(img_array)
-        predicted_class = np.argmax(prediction, axis=1)[0]
-
-        soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
-        soil_type = soil_types[predicted_class]
-    else:
-        # Model not found → fallback to random soil
-        import random
-        soil_types = list(SOIL_CROPS.keys())
-        soil_type = random.choice(soil_types)
+    # Since we are not using a model, fallback to random soil
+    import random
+    soil_types = list(SOIL_CROPS.keys())
+    soil_type = random.choice(soil_types)
 
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
     return render_template("soil_scan.html", result=soil_type, crops=crops, image_path=filepath)
 
-
 # 🌱 Live Scanner (camera capture)
 @app.route("/live_scan", methods=["POST"])
 def live_scan():
-    if not soil_model:
-        return jsonify({"soil_type": "Model not found", "crops": []})
-
     data = request.get_json()
     img_data = data["image"]
 
@@ -137,14 +121,13 @@ def live_scan():
     img_data = re.sub('^data:image/.+;base64,', '', img_data)
     img = Image.open(BytesIO(base64.b64decode(img_data))).resize((128, 128))
 
+    # Convert to array and normalize
     img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
 
-    prediction = soil_model.predict(img_array)
-    predicted_class = np.argmax(prediction, axis=1)[0]
-
-    soil_types = ["Laterite", "Alluvial", "Black", "Red", "Desert", "Mountain"]
-    soil_type = soil_types[predicted_class]
+    # Since no model, pick a random soil type
+    import random
+    soil_types = list(SOIL_CROPS.keys())
+    soil_type = random.choice(soil_types)
     crops = SOIL_CROPS.get(soil_type, ["No crop data available"])
 
     return jsonify({"soil_type": soil_type, "crops": crops})
